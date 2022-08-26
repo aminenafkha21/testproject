@@ -47,5 +47,23 @@ Route::get('storageimages',[FileController::class, 'storageimages']);
 Route::get('storagedoc',[FileController::class, 'storagedoc']);
 
 
+Route::get('sortbydate',[FileController::class, 'sortbydate']);
+Route::get('sortbyname',[FileController::class, 'sortbyname']);
+Route::get('sortbysize',[FileController::class, 'sortbysize']);
+
+
+Route::get('sortbydates',[FileController::class, 'sortbydates']);
+Route::get('sortbynames',[FileController::class, 'sortbynames']);
+Route::get('sortbysizes',[FileController::class, 'sortbysizes']);
+
+
+Route::get('sortbydatea',[FileController::class, 'sortbydatea']);
+Route::get('sortbynamea',[FileController::class, 'sortbynamea']);
+Route::get('sortbysizea',[FileController::class, 'sortbysizea']);
+
+
+Route::get('lastfiles',[FileController::class, 'lastfiles']);
+
+
 });
 

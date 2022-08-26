@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\FileResource;
 use App\Models\File;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -9,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class FileController extends Controller
 {
@@ -83,7 +85,7 @@ class FileController extends Controller
 
 
 
-		if($ext == 'avi' || $ext == 'mp4'  || $ext == 'ogg' || $ext == 'swf' || $ext == 'mpv' || $ext == 'mov' || $ext == 'flv'  || $ext == 'wmv' ) {
+		if($ext == 'avi' || $ext == 'mp4'   || $ext == 'ts'  || $ext == 'ogg' || $ext == 'swf' || $ext == 'mpv' || $ext == 'mov' || $ext == 'flv'  || $ext == 'wmv' ) {
 
 
 
@@ -92,6 +94,8 @@ class FileController extends Controller
 			->orWhere('name' , 'LIKE' , "%ogg%" )
 			->orWhere('name' , 'LIKE' , "%swf%" )
 			->orWhere('name' , 'LIKE' , "%mpv%" )
+			->orWhere('name' , 'LIKE' , "%ts%" )
+
 			->get()->sum("size");
 			
 			$sum3=$sum3+$size ; 
@@ -127,6 +131,10 @@ class FileController extends Controller
 			return response()->json($request->file('files'), 200);
 	}
 
+
+
+			// ************************************ All Storage Functions **********************************************//
+
 	 public function storagevideo() {
 
 
@@ -137,7 +145,39 @@ class FileController extends Controller
 		->get()->sum("size");
 		
 
-		return response()->json($sum3,200);
+				
+		$str = $this->format_size($sum3); 
+		$url = explode('+', $str);
+		$pour= intval(end($url));
+
+	
+
+
+
+
+		$value=0;
+		$containes=Str::contains($str , 'KB' ) ;
+		if($containes == true ) {
+			$value=(floatval(substr($str, 0, strpos($str,'+')-1)) / 1000)  / 1000;
+		}
+
+
+		$containes2=Str::contains($str , 'MB' ) ;
+
+		if($containes2 == true ) {
+			$value=floatval(substr($str, 0, strpos($str,'+')-1)) / 1000 ;
+		}else {
+			$value=floatval(substr($str, 0, strpos($str,'+')-1)) ;
+
+		}
+
+		$data = array(
+			'size' => substr($str, 0, strpos($str,'+')-1),
+			'pourcentage' => round($value * 100 / 5 , 2) 
+
+		);
+
+	     return response()->json($data,200); 
 
 
 	 }
@@ -151,8 +191,28 @@ class FileController extends Controller
 		
 		
 		
+		$str = $this->format_size($sum2); 
+		$url = explode('+', $str);
+		$pour= intval(end($url));
 
-		return response()->json($this->format_size($sum2),200);
+
+		$value=0;
+		$containes=Str::contains($str , 'KB' ) ;
+		if($containes == true ) {
+			$value=floatval(substr($str, 0, strpos($str,'+')-1)) / 1000 ;
+		}else {
+			$value=floatval(substr($str, 0, strpos($str,'+')-1)) ;
+
+		}
+
+		$data = array(
+			'size' => substr($str, 0, strpos($str,'+')-1),
+			'pourcentage' => round($value * 100 / 50 , 2 )
+
+		);
+		$status = 200;
+
+	     return response()->json($data,$status); 
 
 
 	 }
@@ -167,13 +227,39 @@ class FileController extends Controller
 			->get()->sum("size");
 		
 
-		return response()->json($sum,200);
+				
+			$str = $this->format_size($sum); 
+			$url = explode('+', $str);
+			$pour= intval(end($url));
+			$value=0;
+			
+				$containes=Str::contains($str , 'KB' ) ;
+				if($containes == true ) {
+					$value=floatval(substr($str, 0, strpos($str,'+')-1)) / 1000 ;
+				}else {
+					$value=floatval(substr($str, 0, strpos($str,'+')-1)) ;
+
+				}
+
+
+				$data = array(
+					'size' => substr($str, 0, strpos($str,'+')-1),
+					'pourcentage' => round($value * 100 / 5 ,  2)
+
+				);
+
+			return response()->json($data,200); 
 
 
 	 }
 
 
 
+	 		// ************************************ End Storage Functions **********************************************//
+
+
+
+	 // Conversion Byte to KB MB GB TB
 	 function format_size($size) {
 		if ($size < 1024) {
 		  return $size . ' B';
@@ -189,16 +275,23 @@ class FileController extends Controller
 			  break;
 			}
 		  }
-		  return round($size, 2) . ' ' . $unit;
+		  return round($size, 2) . ' ' . $unit  . ' +' . round(round($size, 2)*100/50 , 0 )  ;
 		}
-	  }
+	  }	
+
+	  
+	
+
+
+	  
+
 
 	 // get all files 
 	public function index () {
 
 		$files = File::orderBy('created_at','DESC')->get();
 		if(!$files->isEmpty()){
-            return response()->json($files,200);
+			return FileResource::collection( $files);
 
 		}else{
 			$data = array(
@@ -214,7 +307,7 @@ class FileController extends Controller
 
 			$files = File::orderBy('archivedAt','DESC')->where('archivedAt','!=',NULL)->get();
 			if(count($files)>0){
-				return response()->json($files,200);
+				return FileResource::collection( $files);
 	
 			}else{
 				$data = array(
@@ -231,7 +324,7 @@ class FileController extends Controller
 
 					$files = File::orderBy('starredAt','DESC')->where('starredAt','!=',NULL)->get();
 					if(count($files)>0){
-						return response()->json($files,200);
+						return FileResource::collection( $files);
 			
 					}else{
 						$data = array(
@@ -393,5 +486,200 @@ class FileController extends Controller
 				$message
 			, 404);
 		 }  
+		}
+
+
+
+		// ************************************ All Sorting Functions **********************************************//
+		public function sortbydate () { 
+
+
+
+			$files = File::orderBy('created_at','ASC')->get();
+			if(!$files->isEmpty()){
+				return FileResource::collection( $files);
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
+
+		}
+
+		public function sortbyname () { 
+
+
+
+			$files = File::orderBy('name','DESC')->get();
+			if(!$files->isEmpty()){
+				return FileResource::collection( $files);
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
+
+		}
+
+		public function sortbysize () { 
+
+
+
+			$files = File::orderBy('size','DESC')->get();
+			if(!$files->isEmpty()){
+				return FileResource::collection( $files);
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
+
+		}
+
+
+
+
+		
+		public function sortbydates () { 
+
+
+
+			$files = File::orderBy('created_at','ASC')->where('starredAt','!=',NULL)->get();
+			if(!$files->isEmpty()){
+				return FileResource::collection( $files);
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
+
+		}
+
+		public function sortbynames () { 
+
+
+
+			$files = File::orderBy('name','DESC')->where('starredAt','!=',NULL)->get();
+			if(!$files->isEmpty()){
+				return FileResource::collection( $files);
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
+
+		}
+
+		public function sortbysizes () { 
+
+
+
+			$files = File::orderBy('size','DESC')->where('starredAt','!=',NULL)->get();
+			if(!$files->isEmpty()){
+				return FileResource::collection( $files);
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
+
+		}
+
+
+		
+		public function sortbydatea () { 
+
+
+
+			$files = File::orderBy('created_at','ASC')->where('archivedAt','!=',NULL)->get();
+			if(!$files->isEmpty()){
+				return FileResource::collection( $files);
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
+
+		}
+
+		public function sortbynamea () { 
+
+
+
+			$files = File::orderBy('name','DESC')->where('archivedAt','!=',NULL)->get();
+			if(!$files->isEmpty()){
+				return FileResource::collection( $files);
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
+
+		}
+
+		
+		public function sortbysizea () { 
+
+
+
+			$files = File::orderBy('size','DESC')->where('archivedAt','!=',NULL)->get();
+			if(!$files->isEmpty()){
+				return FileResource::collection( $files);
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
+
+		}
+
+
+				// ************************************ END Sorting Functions **********************************************//
+
+
+
+ 
+		// get last files
+		public function lastfiles () {
+
+			$files = File::orderBy('created_at','DESC')->limit(3)->get();
+			if(!$files->isEmpty()){
+				return response()->json($files,200);
+
+	
+			}else{
+				$data = array(
+					'message' => 'No Files found!'
+				);
+				$status = 400;
+			}
+			return response()->json($data,$status);
 		}
 }
