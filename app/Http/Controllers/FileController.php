@@ -8,39 +8,18 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\UploadedFile;
-
+use Illuminate\Support\Facades\DB;
 
 class FileController extends Controller
 {
 
 
+
+	 // Upload Files
+
 	public function uploadfiles(Request $request) {
 
-		/*
-	if(!$request->hasFile('images')) {
-		return response()->json(['upload_file_not_found'], 400);
-	}
- 
-	$allowedfileExtension=['pdf','jpg','png'];
-	$files = $request->file('images'); 
-	$errors = [];
- 
-				foreach ($request->file('images') as $file) {      
-			
-					$extension = $file->getClientOriginalExtension();
-			
-					$check = in_array($extension,$allowedfileExtension);
-			
-						
-							$original_file_name = $file->getClientOriginalName();
-							$save = new File();
-							$save->name = $original_file_name;
-							$save->size = 20;
-							$save->save();
-			
-				}
 
-	return response()->json(['file_uploaded'], 200); */
 	$validator = \Validator::make($request->all(), [
 		'files' => 'required'
 	])->validate();
@@ -51,8 +30,85 @@ class FileController extends Controller
 	foreach ($images as $file) {
 		// rename & upload files to uploads folder
 		
+		$ext = $file->getClientOriginalExtension();
 		$name = $file->getClientOriginalName();
 		$size=$file->getSize();
+		if($ext == 'txt' || $ext == 'pdf'  || $ext == 'doc' || $ext == 'docx' || $ext == 'html' || $ext == 'ppt' || $ext == 'pptx' ) {
+
+
+
+			$extension = pathinfo($name, PATHINFO_EXTENSION);
+			$sum = File::where('name' , 'LIKE' , "%pdf%" )->orWhere('name' , 'LIKE' , "%txt%" )->orWhere('name' , 'LIKE' , "%doc%" )->orWhere('name' , 'LIKE' , "%docx%" )->orWhere('name' , 'LIKE' , "%html%" )
+			->orWhere('name' , 'LIKE' , "%ppt%" )
+			->orWhere('name' , 'LIKE' , "%pptx%" )
+			->orWhere('name' , 'LIKE' , "%xls%" )
+			->get()->sum("size");
+			
+			$sum=$sum+$size ; 
+			
+			if($sum > 5000000) {
+
+
+				return response()->json(' The storage of documents is full!',404);
+
+			}
+			
+
+
+		}
+
+
+		if($ext == 'jpg' || $ext == 'png'  || $ext == 'gif' || $ext == 'jpeg' || $ext == 'psd' || $ext == 'tiff' || $ext == 'raw' ) {
+
+
+
+			$extension = pathinfo($name, PATHINFO_EXTENSION);
+			$sum2 = File::where('name' , 'LIKE' , "%jpg%" )->orWhere('name' , 'LIKE' , "%png%" )->orWhere('name' , 'LIKE' , "%gif%" )->orWhere('name' , 'LIKE' , "%jpeg%" )->orWhere('name' , 'LIKE' , "%tiff%" )
+			->orWhere('name' , 'LIKE' , "%raw%" )
+			->get()->sum("size");
+			
+			$sum2=$sum2+$size ; 
+			
+
+			if($sum2 > 52428800) {
+
+
+				return response()->json(' The storage of images is full!',404);
+
+			}
+			
+
+
+		}
+
+
+
+		if($ext == 'avi' || $ext == 'mp4'  || $ext == 'ogg' || $ext == 'swf' || $ext == 'mpv' || $ext == 'mov' || $ext == 'flv'  || $ext == 'wmv' ) {
+
+
+
+			$extension = pathinfo($name, PATHINFO_EXTENSION);
+			$sum3 = File::where('name' , 'LIKE' , "%mp4%" )->orWhere('name' , 'LIKE' , "%avi%" )->orWhere('name' , 'LIKE' , "%mov%" )->orWhere('name' , 'LIKE' , "%flv%" )->orWhere('name' , 'LIKE' , "%wmv%" )
+			->orWhere('name' , 'LIKE' , "%ogg%" )
+			->orWhere('name' , 'LIKE' , "%swf%" )
+			->orWhere('name' , 'LIKE' , "%mpv%" )
+			->get()->sum("size");
+			
+			$sum3=$sum3+$size ; 
+			
+
+			if($sum3 > 5368709120) {
+
+
+				return response()->json(' The storage of videos is full!',404);
+
+			}
+			
+
+
+		}
+
+		
 	
 
 		// store in db
@@ -71,12 +127,78 @@ class FileController extends Controller
 			return response()->json($request->file('files'), 200);
 	}
 
+	 public function storagevideo() {
+
+
+		$sum3 = File::where('name' , 'LIKE' , "%mp4%" )->orWhere('name' , 'LIKE' , "%avi%" )->orWhere('name' , 'LIKE' , "%mov%" )->orWhere('name' , 'LIKE' , "%flv%" )->orWhere('name' , 'LIKE' , "%wmv%" )
+		->orWhere('name' , 'LIKE' , "%ogg%" )
+		->orWhere('name' , 'LIKE' , "%swf%" )
+		->orWhere('name' , 'LIKE' , "%mpv%" )
+		->get()->sum("size");
+		
+
+		return response()->json($sum3,200);
+
+
+	 }
+
+	 public function storageimages() {
+
+
+		$sum2 = File::where('name' , 'LIKE' , "%jpg%" )->orWhere('name' , 'LIKE' , "%png%" )->orWhere('name' , 'LIKE' , "%gif%" )->orWhere('name' , 'LIKE' , "%jpeg%" )->orWhere('name' , 'LIKE' , "%tiff%" )
+		->orWhere('name' , 'LIKE' , "%raw%" )
+		->get()->sum("size");
+		
+		
+		
+
+		return response()->json($this->format_size($sum2),200);
+
+
+	 }
+
+	 public function storagedoc() {
+
+
+		$sum = File::where('name' , 'LIKE' , "%pdf%" )->orWhere('name' , 'LIKE' , "%txt%" )->orWhere('name' , 'LIKE' , "%doc%" )->orWhere('name' , 'LIKE' , "%docx%" )->orWhere('name' , 'LIKE' , "%html%" )
+			->orWhere('name' , 'LIKE' , "%ppt%" )
+			->orWhere('name' , 'LIKE' , "%pptx%" )
+			->orWhere('name' , 'LIKE' , "%xls%" )
+			->get()->sum("size");
+		
+
+		return response()->json($sum,200);
+
+
+	 }
+
+
+
+	 function format_size($size) {
+		if ($size < 1024) {
+		  return $size . ' B';
+		}
+		else {
+		  $size = $size / 1024;
+		  $units = ['KB', 'MB', 'GB', 'TB'];
+		  foreach ($units as $unit) {
+			if (round($size, 2) >= 1024) {
+			  $size = $size / 1024;
+			}
+			else {
+			  break;
+			}
+		  }
+		  return round($size, 2) . ' ' . $unit;
+		}
+	  }
+
 	 // get all files 
 	public function index () {
 
-		$files = File::orderBy('created_at','DESC')->paginate();
+		$files = File::orderBy('created_at','DESC')->get();
 		if(!$files->isEmpty()){
-            return response()->json(File::all(),200);
+            return response()->json($files,200);
 
 		}else{
 			$data = array(
@@ -90,7 +212,7 @@ class FileController extends Controller
 		 // get all archived files 
 		 public function archivedfiles () {
 
-			$files = File::where('archivedAt','!=',NULL)->get();
+			$files = File::orderBy('archivedAt','DESC')->where('archivedAt','!=',NULL)->get();
 			if(count($files)>0){
 				return response()->json($files,200);
 	
@@ -107,7 +229,7 @@ class FileController extends Controller
 				 // get all favourites files 
 				 public function favourites () {
 
-					$files = File::where('starredAt','!=',NULL)->get();
+					$files = File::orderBy('starredAt','DESC')->where('starredAt','!=',NULL)->get();
 					if(count($files)>0){
 						return response()->json($files,200);
 			

@@ -41,5 +41,11 @@ Route::post('/upload',[FileController::class, 'uploadfiles']);
 Route::post('/uploader',[FileController::class, 'uploader']);
 
 
+
+Route::get('storagevideo',[FileController::class, 'storagevideo']);
+Route::get('storageimages',[FileController::class, 'storageimages']);
+Route::get('storagedoc',[FileController::class, 'storagedoc']);
+
+
 });
 
